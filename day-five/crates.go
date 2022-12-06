@@ -34,11 +34,11 @@ func main() {
 	moveCrates9001(scanner, stacks)
 
 	fmt.Println("Example Two:", stackHeads(stacks))
-	
+
 	scanner = bufio.NewScanner(strings.NewReader(input))
 	stacks = parseCrateStack(scanner)
 	moveCrates9001(scanner, stacks)
-	
+
 	fmt.Println("Part Two:", stackHeads(stacks))
 
 }
@@ -47,8 +47,8 @@ func moveCrates(scanner *bufio.Scanner, stacks []*stack[rune]) {
 	for scanner.Scan() {
 		moves := strings.Split(scanner.Text(), " ")
 		n := mustAtoi(moves[1])
-		from := stacks[mustAtoi(moves[3]) - 1]
-		to := stacks[mustAtoi(moves[5]) - 1]
+		from := stacks[mustAtoi(moves[3])-1]
+		to := stacks[mustAtoi(moves[5])-1]
 
 		for i := 1; i <= n; i++ {
 			to.push(from.pop())
@@ -60,13 +60,13 @@ func moveCrates9001(scanner *bufio.Scanner, stacks []*stack[rune]) {
 	for scanner.Scan() {
 		moves := strings.Split(scanner.Text(), " ")
 		n := mustAtoi(moves[1])
-		from := stacks[mustAtoi(moves[3]) - 1]
-		to := stacks[mustAtoi(moves[5]) - 1]
+		from := stacks[mustAtoi(moves[3])-1]
+		to := stacks[mustAtoi(moves[5])-1]
 
 		buf := from.popn(n)
 
 		for i := n; i != 0; i-- {
-			to.push(buf[i - 1])
+			to.push(buf[i-1])
 		}
 	}
 }
@@ -94,7 +94,7 @@ func parseCrateStack(scanner *bufio.Scanner) []*stack[rune] {
 	}
 
 	index := map[int]int{}
-	indexLine := buf[len(buf) - 1]
+	indexLine := buf[len(buf)-1]
 	stacks := make([]*stack[rune], 0)
 	for i := 1; true; i++ {
 		x := strings.Index(indexLine, strconv.Itoa(i))
@@ -106,7 +106,7 @@ func parseCrateStack(scanner *bufio.Scanner) []*stack[rune] {
 	}
 
 	columns := len(stacks)
-	
+
 	for i := len(buf) - 2; i >= 0; i-- {
 		for j := 1; j <= columns; j++ {
 			z := buf[i][index[j]]
