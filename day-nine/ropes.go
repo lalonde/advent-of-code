@@ -30,26 +30,36 @@ var input string
 var inputxl string
 
 type knot struct {
-	id string
-	l  *location
+	l *location
+}
+
+func (k *knot) distance(o *knot) int {
+	x := o.l.x - k.l.x
+	y := o.l.y - k.l.y
+	return int(math.Sqrt(float64(x*x + y*y)))
 }
 
 type rope struct {
-	head, tail *knot
+	knots []*knot
 }
 
+func (r *rope) head() *knot {
+	return r.knots[0]
+}
+
+func (r *rope) tail() *knot {
+	return r.knots[len(r.knots)-1]
+}
 func (r *rope) headLoc() *location {
-	return r.head.l
+	return r.head().l
 }
 
 func (r *rope) tailLoc() *location {
-	return r.tail.l
+	return r.tail().l
 }
 
 func (r *rope) headTailDistance() int {
-	x := r.head.l.x - r.tail.l.x
-	y := r.head.l.y - r.tail.l.y
-	return int(math.Sqrt(float64(x*x + y*y)))
+	return r.tail().distance(r.head())
 }
 
 type field struct {
@@ -138,51 +148,74 @@ type ropefield struct {
 	f *field
 }
 
-func newRopeField() *ropefield {
+func newRopeField(knots int) *ropefield {
 	f := newField()
 	f.start.addLabel(headLabel)
 	f.start.addLabel(tailLabel)
-	r := rope{
-		head: &knot{headLabel, f.start},
-		tail: &knot{tailLabel, f.start},
+
+	k := make([]*knot, knots, knots)
+	for i := range k {
+		k[i] = &knot{f.start}
 	}
+
 	return &ropefield{
-		r: &r,
+		r: &rope{k},
 		f: f,
 	}
 }
 
 func (rf *ropefield) moveHeadLeft() {
-	l := rf.r.head.l
-	rf.moveHeadTo(l.x-1, l.y)
+	rf.moveHeadBy(-1, 0)
 
 }
 
 func (rf *ropefield) moveHeadRight() {
-	l := rf.r.head.l
-	rf.moveHeadTo(l.x+1, l.y)
+	rf.moveHeadBy(1, 0)
 }
 
 func (rf *ropefield) moveHeadUp() {
-	l := rf.r.head.l
-	rf.moveHeadTo(l.x, l.y+1)
+	rf.moveHeadBy(0, 1)
 }
 
 func (rf *ropefield) moveHeadDown() {
-	l := rf.r.head.l
-	rf.moveHeadTo(l.x, l.y-1)
+	rf.moveHeadBy(0, -1)
 }
 
 // TODO: assumption is one move. Should protect
-func (rf *ropefield) moveHeadTo(x, y int) {
-	from := rf.r.head.l
-	to := rf.f.mustGetLocationAt(x, y)
+func (rf *ropefield) moveHeadBy(x, y int) {
+	from := rf.r.headLoc()
+	to := rf.f.mustGetLocationAt(from.x+x, from.y+y)
 	to.addLabel(headLabel)
-	rf.r.head.l = to
-	if rf.r.headTailDistance() > 1 {
-		rf.r.tail.l = from
-		from.addLabel(tailLabel)
+	rf.r.knots[0].l = to
+
+	for i := 1; i < len(rf.r.knots); i++ {
+		leadk := rf.r.knots[i-1]
+		followk := rf.r.knots[i]
+
+		yoff := (leadk.l.y - followk.l.y)
+		xoff := (leadk.l.x - followk.l.x)
+		if followk.distance(leadk) > 1 {
+			if yoff != 0 && xoff != 0 {
+				followk.l = rf.f.mustGetLocationAt(followk.l.x+posOrNegOne(xoff), followk.l.y+posOrNegOne(yoff))
+			} else {
+				followk.l = rf.f.mustGetLocationAt(followk.l.x+(xoff/2), followk.l.y+(yoff/2))
+			}
+
+			if i == len(rf.r.knots)-1 {
+				followk.l.addLabel(tailLabel)
+			}
+			continue
+
+		}
+		break
 	}
+}
+
+func posOrNegOne(n int) int {
+	if n > 0 {
+		return 1
+	}
+	return -1
 }
 
 func (rf *ropefield) moveHead(move string, n int) {
@@ -211,15 +244,63 @@ func (rf *ropefield) moveHead(move string, n int) {
 	}
 }
 
-func main() {
-	parseAndRunFor("Part One Ex", inputex)
-	parseAndRunFor("Part One", input)
+func (rf *ropefield) vis() {
+	var minx, maxx, miny, maxy int
+	for _, v := range rf.f.locations {
+		if v.x < minx {
+			minx = v.x
+		}
+		if v.x > maxx {
+			maxx = v.x
+		}
+		if v.y < miny {
+			miny = v.y
+		}
+		if v.y > maxy {
+			maxy = v.y
+		}
+	}
 
+	rows := maxy - miny + 1
+	cols := maxx - minx + 1
+
+	g := make([][]string, rows, rows)
+	for i := range g {
+		g[i] = make([]string, cols, cols)
+		for j := range g[i] {
+			g[i][j] = "."
+		}
+	}
+
+	for i, k := range rf.r.knots {
+		l := k.l
+		g[l.y-miny][l.x-minx] = strconv.Itoa(i)
+	}
+
+	for y := len(g) - 1; y >= 0; y-- {
+		for x := range g[y] {
+			fmt.Print(g[y][x])
+		}
+		fmt.Print("\n")
+	}
+
+	fmt.Println("")
 }
 
-func parseAndRunFor(part, in string) {
+func main() {
+	//Part One Ex 13
+	//Part One 6498
+	//Part Two Ex 36
+	//Part Two 2531
+	parseAndRunFor("Part One Ex", inputex, 2, false)
+	parseAndRunFor("Part One", input, 2, false)
+	parseAndRunFor("Part Two Ex", inputxl, 10, false)
+	parseAndRunFor("Part Two", input, 10, false)
+}
+
+func parseAndRunFor(part, in string, knots int, vis bool) {
 	motions := bufio.NewScanner(strings.NewReader(in))
-	area := newRopeField()
+	area := newRopeField(knots)
 	for motions.Scan() {
 		motion := strings.Fields(motions.Text())
 		n, err := strconv.Atoi(motion[1])
@@ -227,6 +308,10 @@ func parseAndRunFor(part, in string) {
 			panic(err.Error())
 		}
 		area.moveHead(motion[0], n)
+		if vis {
+			fmt.Println(motion)
+			area.vis()
+		}
 	}
 
 	tailVisits := 0
