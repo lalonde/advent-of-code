@@ -47,21 +47,6 @@ func (r *rope) head() *knot {
 	return r.knots[0]
 }
 
-func (r *rope) tail() *knot {
-	return r.knots[len(r.knots)-1]
-}
-func (r *rope) headLoc() *location {
-	return r.head().l
-}
-
-func (r *rope) tailLoc() *location {
-	return r.tail().l
-}
-
-func (r *rope) headTailDistance() int {
-	return r.tail().distance(r.head())
-}
-
 type field struct {
 	locations map[string]*location
 	start     *location
@@ -73,11 +58,6 @@ func newField() *field {
 	f.start = l
 	f.locations = map[string]*location{l.id: l}
 	return &f
-}
-
-func (f *field) empty(x, y int) bool {
-	_, ok := f.locations[locationID(x, y)]
-	return !ok
 }
 
 func (f *field) locationAt(x, y int) *location {
@@ -92,6 +72,11 @@ func (f *field) mustGetLocationAt(x, y int) *location {
 	return l
 }
 
+func (f *field) empty(x, y int) bool {
+	_, ok := f.locations[locationID(x, y)]
+	return !ok
+}
+
 func (f *field) addLocation(x, y int, labels ...string) *location {
 	if !f.empty(x, y) {
 		return nil
@@ -99,22 +84,6 @@ func (f *field) addLocation(x, y int, labels ...string) *location {
 	l := newLocation(x, y, labels...)
 	f.locations[l.id] = l
 	return l
-}
-
-func (f *field) lookWestOf(x, y int) *location {
-	return f.locationAt(x-1, y)
-}
-
-func (f *field) lookEastOf(x, y int) *location {
-	return f.locationAt(x+1, y)
-}
-
-func (f *field) lookNorthOf(x, y int) *location {
-	return f.locationAt(x, y+1)
-}
-
-func (f *field) lookSouthOf(x, y int) *location {
-	return f.locationAt(x, y-1)
 }
 
 type location struct {
@@ -183,7 +152,7 @@ func (rf *ropefield) moveHeadDown() {
 
 // TODO: assumption is one move. Should protect
 func (rf *ropefield) moveHeadBy(x, y int) {
-	from := rf.r.headLoc()
+	from := rf.r.head().l
 	to := rf.f.mustGetLocationAt(from.x+x, from.y+y)
 	to.addLabel(headLabel)
 	rf.r.knots[0].l = to
@@ -219,25 +188,27 @@ func posOrNegOne(n int) int {
 }
 
 func (rf *ropefield) moveHead(move string, n int) {
+	headLoc := rf.r.head().l
+
 	switch move {
 	case moveLeft:
-		to := rf.r.headLoc().x - n
-		for i := rf.r.headLoc().x - 1; i >= to; i-- {
+		to := headLoc.x - n
+		for i := headLoc.x - 1; i >= to; i-- {
 			rf.moveHeadLeft()
 		}
 	case moveRight:
-		to := rf.r.headLoc().x + n
-		for i := rf.r.headLoc().x + 1; i <= to; i++ {
+		to := headLoc.x + n
+		for i := headLoc.x + 1; i <= to; i++ {
 			rf.moveHeadRight()
 		}
 	case moveUp:
-		to := rf.r.headLoc().y + n
-		for i := rf.r.headLoc().y + 1; i <= to; i++ {
+		to := headLoc.y + n
+		for i := headLoc.y + 1; i <= to; i++ {
 			rf.moveHeadUp()
 		}
 	case moveDown:
-		to := rf.r.headLoc().y - n
-		for i := rf.r.headLoc().y - 1; i >= to; i-- {
+		to := headLoc.y - n
+		for i := headLoc.y - 1; i >= to; i-- {
 			rf.moveHeadDown()
 		}
 
@@ -287,17 +258,6 @@ func (rf *ropefield) vis() {
 	fmt.Println("")
 }
 
-func main() {
-	//Part One Ex 13
-	//Part One 6498
-	//Part Two Ex 36
-	//Part Two 2531
-	parseAndRunFor("Part One Ex", inputex, 2, false)
-	parseAndRunFor("Part One", input, 2, false)
-	parseAndRunFor("Part Two Ex", inputxl, 10, false)
-	parseAndRunFor("Part Two", input, 10, false)
-}
-
 func parseAndRunFor(part, in string, knots int, vis bool) {
 	motions := bufio.NewScanner(strings.NewReader(in))
 	area := newRopeField(knots)
@@ -327,4 +287,11 @@ func parseAndRunFor(part, in string, knots int, vis bool) {
 
 func locationID(x, y int) string {
 	return fmt.Sprintf("x:%d,y:%d", x, y)
+}
+
+func main() {
+	parseAndRunFor("Part One Ex", inputex, 2, false)
+	parseAndRunFor("Part One", input, 2, false)
+	parseAndRunFor("Part Two Ex", inputxl, 10, false)
+	parseAndRunFor("Part Two", input, 10, false)
 }
